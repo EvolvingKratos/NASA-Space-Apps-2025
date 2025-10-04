@@ -1,21 +1,23 @@
-// OverflightCalculator.js - Separate file for calculating satellite overflight intervals
-// This can be used for debugging by logging overflights and intervals to console
+// OverflightCalculator.js
 
 function computeNextFreeIntervals(satellites, currentTime) {
     let overflights = [];
 
     satellites.forEach(sat => {
-        const omega = sat.angularSpeed;
-        if (omega === 0) return; // Skip if no motion
+        if (sat.h === 0) return; // Skip if no motion
 
-        const T_ms = (2 * Math.PI / omega) * 1000; // Period in milliseconds
-        let phase = sat.angle % (2 * Math.PI);
-        if (phase < 0) phase += 2 * Math.PI;
-        let delta = (2 * Math.PI - phase) % (2 * Math.PI);
-        let t_next_ms = (delta / omega) * 1000;
-
-        // Ensure next is after current time
-        if (t_next_ms < 0) t_next_ms += T_ms; // Rare, but handle negative
+        const omega = sat.h / (sat.r ** 2);
+        const abs_omega = Math.abs(omega);
+        if (abs_omega < 1e-6) return; // Skip if nearly zero
+        const T_ms = (2 * Math.PI / abs_omega) * 1000; // Period in milliseconds
+        let phase = ((sat.angle % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+        let delta;
+        if (omega > 0) {
+            delta = (2 * Math.PI - phase) % (2 * Math.PI);
+        } else {
+            delta = phase % (2 * Math.PI);
+        }
+        let t_next_ms = (delta / abs_omega) * 1000;
 
         let next = new Date(currentTime.getTime() + t_next_ms);
 
