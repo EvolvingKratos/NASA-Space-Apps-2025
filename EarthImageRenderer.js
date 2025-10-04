@@ -1,5 +1,3 @@
-// EarthImageRenderer.js
-
 function getLocation() {
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(success, error);
@@ -16,9 +14,8 @@ function success(pos) {
     const user_lat = pos.coords.latitude;
     const user_lon = pos.coords.longitude;
 
-    // Debug: Show coordinates
-    alert(`Detected Location: Latitude ${user_lat.toFixed(2)}°, Longitude ${user_lon.toFixed(2)}°`);
-    console.log(`User Location: Latitude ${user_lat}, Longitude ${user_lon}`);
+    // Update UI with user location
+    document.getElementById('user-location').textContent = `User Location: Lat ${user_lat.toFixed(2)}°, Lon ${user_lon.toFixed(2)}°`;
 
     const lat_rad = user_lat * Math.PI / 180;
     const lon_rad = user_lon * Math.PI / 180;
@@ -53,6 +50,22 @@ function success(pos) {
         {lat: center2_lat, lon: center2_lon, canvasId: 'second', mode: 'U'},
         {lat: center3_lat, lon: center3_lon, canvasId: 'third', mode: 'V'}
     ];
+
+    // Define 5 satellites with different radii, speeds, starting angles, colors, and names
+    const satellites = [
+        { radius: 120, angularSpeed: 0.1, angle: 0, color: 'red', plane: 'U', name: 'Starlink-1' },
+        { radius: 150, angularSpeed: 0.15, angle: Math.PI / 5, color: 'green', plane: 'U', name: 'ISS' },
+        { radius: 180, angularSpeed: 0.2, angle: 2 * Math.PI / 5, color: 'blue', plane: 'V', name: 'OneWeb-1' },
+        { radius: 210, angularSpeed: 0.25, angle: 3 * Math.PI / 5, color: 'yellow', plane: 'V', name: 'GPS-1' },
+        { radius: 240, angularSpeed: 0.3, angle: 4 * Math.PI / 5, color: 'purple', plane: 'U', name: 'GEO-Sat-1' }
+    ];
+
+    // Add speedU and speedV to each satellite based on the demo logic
+    const baseSpeed = 0.1;
+    satellites.forEach(sat => {
+        sat.speedU = baseSpeed;
+        sat.speedV = sat.angularSpeed - baseSpeed;
+    });
 
     const textureUrl = '2k_earth_daymap.jpg'; // Ensure this file exists!
 
@@ -92,6 +105,7 @@ function success(pos) {
                 C_proj: C_view,
                 U_proj: U_view,
                 V_proj: V_view,
+                satellites: structuredClone(satellites),
                 mode: center.mode
             };
 
@@ -115,11 +129,8 @@ function success(pos) {
             window.animId = null;
         }
 
-        // Reset satellites to demo ones
-        window.satellites = null;
-
         // Initialize satellite simulation
-        initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_orbit);
+        initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_orbit, user_lat, user_lon);
     };
     img.onerror = () => {
         alert('Failed to load the Earth texture image. Ensure 2k_earth_daymap.jpg is in the same directory as this HTML file and that you are running this on a local server.');
@@ -209,4 +220,28 @@ function renderEarth(center_lat, center_lon, tex_width, tex_height, tex_data, ca
     }
 
     ctx.putImageData(imageData, 0, 0);
+
+    // Add a simple border for views
+    ctx.strokeStyle = '#90caf9';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(canvas_width / 2, canvas_height / 2, earth_radius, 0, 2 * Math.PI);
+    ctx.stroke();
+
+    if (isMainCanvas) {
+        // Draw the local horizon circle
+        ctx.strokeStyle = 'white';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.arc(canvas_width / 2, canvas_height / 2, earth_radius, 0, 2 * Math.PI);
+        ctx.stroke();
+
+        // Draw the N, E, S, W markers
+        ctx.fillStyle = '#90caf9';
+        ctx.font = '16px Arial';
+        ctx.fillText('N', canvas_width / 2 - 8, canvas_height / 2 - earth_radius - 10);
+        ctx.fillText('E', canvas_width / 2 + earth_radius + 10, canvas_height / 2 + 5);
+        ctx.fillText('S', canvas_width / 2 - 8, canvas_height / 2 + earth_radius + 25);
+        ctx.fillText('W', canvas_width / 2 - earth_radius - 25, canvas_height / 2 + 5);
+    }
 }
