@@ -51,22 +51,6 @@ function success(pos) {
         {lat: center3_lat, lon: center3_lon, canvasId: 'third', mode: 'V'}
     ];
 
-    // Define 5 satellites with different radii, speeds, starting angles, colors, and names
-    const satellites = [
-        { radius: 120, angularSpeed: 0.1, angle: 0, color: 'red', plane: 'U', name: 'Starlink-1' },
-        { radius: 150, angularSpeed: 0.15, angle: Math.PI / 5, color: 'green', plane: 'U', name: 'ISS' },
-        { radius: 180, angularSpeed: 0.2, angle: 2 * Math.PI / 5, color: 'blue', plane: 'V', name: 'OneWeb-1' },
-        { radius: 210, angularSpeed: 0.25, angle: 3 * Math.PI / 5, color: 'yellow', plane: 'V', name: 'GPS-1' },
-        { radius: 240, angularSpeed: 0.3, angle: 4 * Math.PI / 5, color: 'purple', plane: 'U', name: 'GEO-Sat-1' }
-    ];
-
-    // Add speedU and speedV to each satellite based on the demo logic
-    const baseSpeed = 0.1;
-    satellites.forEach(sat => {
-        sat.speedU = baseSpeed;
-        sat.speedV = sat.angularSpeed - baseSpeed;
-    });
-
     const textureUrl = '2k_earth_daymap.jpg'; // Ensure this file exists!
 
     const img = new Image();
@@ -105,7 +89,6 @@ function success(pos) {
                 C_proj: C_view,
                 U_proj: U_view,
                 V_proj: V_view,
-                satellites: structuredClone(satellites),
                 mode: center.mode
             };
 
@@ -113,7 +96,7 @@ function success(pos) {
             offscreen.width = canvas.width;
             offscreen.height = canvas.height;
 
-            const view_earth_radius = isMain ? 300 : 200;
+            const view_earth_radius = isMain ? 300 : 100; // Reduced Earth radius for side views
 
             views.push({
                 canvas,
@@ -149,7 +132,7 @@ function renderEarth(center_lat, center_lon, tex_width, tex_height, tex_data, ca
     ctx.fillRect(0, 0, canvas_width, canvas_height);
 
     // Determine the size of the Earth to draw on this canvas
-    const earth_radius = isMainCanvas ? 300 : 200;
+    const earth_radius = isMainCanvas ? 300 : 100; // Reduced Earth radius for side views
     const center_offset_x = (canvas_width - (earth_radius * 2)) / 2;
     const center_offset_y = (canvas_height - (earth_radius * 2)) / 2;
 

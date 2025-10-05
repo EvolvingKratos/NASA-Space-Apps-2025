@@ -91,6 +91,15 @@
             font-weight: bold;
             color: #32CD32;
         }
+        #event-log {
+            max-height: 200px;
+            overflow-y: auto;
+            font-size: 0.9em;
+            color: #ffc107;
+        }
+        #event-log p {
+            margin: 4px 0;
+        }
     </style>
 </head>
 <body onload="getLocation()">
@@ -137,9 +146,15 @@
 
             <hr style="border-color: #444;">
 
-            <h3>Active Satellites (5 Total)</h3>
+            <h3 id="sat-header">Active Satellites (5 Total)</h3>
             <div id="sat-list" style="max-height: 400px; overflow-y: auto;">
                 <p>Loading satellites...</p>
+            </div>
+
+            <hr style="border-color: #444;">
+
+            <h3>Event Log</h3>
+            <div id="event-log">
             </div>
         </div>
     </div>
