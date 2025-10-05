@@ -1,25 +1,34 @@
 window.satellites = null;
 window.animId = null;
+// Store views and earthImages globally if you intend for handleAddNewSatellite to use them
+// If not, they should be passed as parameters if needed, or derived from current state.
+// For now, let's assume they are globally accessible or passed in initializeSatelliteSimulation.
+let globalViews = []; 
+let globalEarthImages = {};
+
 
 function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_orbit, user_lat, user_lon) {
+    globalViews = views; // Store for global access if needed
+    globalEarthImages = earthImages; // Store for global access if needed
+
     // Define gravitational parameter (arbitrary units, scaled for simulation)
     const GM = 1.0; // Gravitational parameter for Earth
-    const satellites = [
+    const initialSatellites = [
         { r: 1 + 120 / 200, angle: 0, color: 'red', isDemo: true, name: 'Starlink-1', angularSpeed: 0.1, speedU: 0.1, speedV: 0, effectiveAngle: Math.atan2(0, 0.1), h: 0.1 * (1 + 120 / 200) ** 2, vr: 0 },
         { r: 1 + 150 / 200, angle: Math.PI / 5, color: 'green', isDemo: true, name: 'ISS', angularSpeed: 0.15, speedU: 0.1, speedV: 0.05, effectiveAngle: Math.atan2(0.05, 0.1), h: 0.15 * (1 + 150 / 200) ** 2, vr: 0 },
         { r: 1 + 180 / 200, angle: 2 * Math.PI / 5, color: 'blue', isDemo: true, name: 'OneWeb-1', angularSpeed: 0.2, speedU: 0.1, speedV: 0.1, effectiveAngle: Math.atan2(0.1, 0.1), h: 0.2 * (1 + 180 / 200) ** 2, vr: 0 },
         { r: 1 + 210 / 200, angle: 3 * Math.PI / 5, color: 'yellow', isDemo: true, name: 'GPS-1', angularSpeed: 0.25, speedU: 0.1, speedV: 0.15, effectiveAngle: Math.atan2(0.15, 0.1), h: 0.25 * (1 + 210 / 200) ** 2, vr: 0 },
         { r: 1 + 240 / 200, angle: 4 * Math.PI / 5, color: 'purple', isDemo: true, name: 'GEO-Sat-1', angularSpeed: 0.3, speedU: 0.1, speedV: 0.2, effectiveAngle: Math.atan2(0.2, 0.1), h: 0.3 * (1 + 240 / 200) ** 2, vr: 0 }
     ];
-    window.satellites = satellites;
+    window.satellites = initialSatellites;
 
     function updateTrajectories() {
-        views.forEach(view => {
+        globalViews.forEach(view => { // Use globalViews here
             const offCtx = view.offscreen.getContext('2d');
             offCtx.clearRect(0, 0, view.offscreen.width, view.offscreen.height);
 
             const earthImg = new Image();
-            earthImg.src = earthImages[view.canvas.id];
+            earthImg.src = globalEarthImages[view.canvas.id]; // Use globalEarthImages here
             offCtx.drawImage(earthImg, 0, 0);
 
             const { C_orbit, U_orbit, V_orbit, C_proj, U_proj, V_proj, mode } = view.config;
@@ -178,7 +187,7 @@ function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_o
                     window.satellites.splice(i, 1);
                     updateSatelliteList();
                     updateTrajectories();
-                    i--;
+                    i--; // Adjust index due to splice
                     continue;
                 } else if (sat.r > 50) {
                     const message = `${sat.name} escaped the Earth`;
@@ -186,7 +195,7 @@ function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_o
                     window.satellites.splice(i, 1);
                     updateSatelliteList();
                     updateTrajectories();
-                    i--;
+                    i--; // Adjust index due to splice
                     continue;
                 }
 
@@ -202,7 +211,7 @@ function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_o
 
         updateTrajectories();
 
-        views.forEach(view => {
+        globalViews.forEach(view => { // Use globalViews here
             const ctx = view.canvas.getContext('2d');
             const { C_orbit, U_orbit, V_orbit, C_proj, U_proj, V_proj, mode } = view.config;
             const centerX = view.canvas.width / 2;
@@ -272,21 +281,13 @@ function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_o
     updateTimeAndIntervals();
     setInterval(updateTimeAndIntervals, 1000);
 
-    function updateSatelliteList() {
-        const listDiv = document.getElementById('sat-list');
-        listDiv.innerHTML = '';
-        window.satellites.forEach((sat, index) => {
-            const p = document.createElement('p');
-            p.style.color = sat.color;
-            const deleteButton = sat.isDemo ? `<span style="color: #6c757d; font-style: italic;">(Demo)</span>` : `<button onclick="handleDeleteSatellite(${index})">X</button>`;
-            p.innerHTML = `${sat.name} ${deleteButton}`;
-            listDiv.appendChild(p);
-        });
-        // Update header with current satellite count
-        document.getElementById('sat-header').textContent = `Active Satellites (${window.satellites.length} Total)`;
-    }
+    updateSatelliteList();
 
-    // Set up delete button
+    // The "Delete Custom Satellite" button is redundant if the 'X' button is functional
+    // and you only want to delete custom ones. Let's remove it for simplicity as per your UI requirement.
+    // However, if you want to keep it, ensure it targets *only* custom satellites as previously attempted.
+    // For now, I'll comment it out to align with only using the 'X' next to "imaginary satellites".
+    /*
     const deleteButton = document.createElement('button');
     deleteButton.textContent = 'Delete Custom Satellite';
     deleteButton.onclick = () => {
@@ -295,81 +296,16 @@ function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_o
             alert('No custom satellites to delete.');
             return;
         }
-        const satIndex = window.satellites.findIndex(sat => !sat.isDemo);
-        if (satIndex > -1) {
-            window.satellites.splice(satIndex, 1);
+        // Find the index of the first custom satellite and delete it
+        const satIndexToDelete = window.satellites.findIndex(sat => !sat.isDemo);
+        if (satIndexToDelete > -1) {
+            window.satellites.splice(satIndexToDelete, 1);
             updateTrajectories();
             updateSatelliteList();
         }
     };
     document.getElementById('controls').appendChild(deleteButton);
-
-    // Set up add satellite handler
-    window.handleAddNewSatellite = () => {
-        const orbitType = prompt('Enter orbit type (crash, stable, escape):').toLowerCase();
-        let r, angular, vr, orbitDescription;
-
-        // Default radius for all cases
-        const baseRadius = 1.5; // Normalized units, R_Earth = 1
-        const circularSpeed = Math.sqrt(GM / baseRadius); // v = sqrt(GM/r)
-        const escapeSpeed = Math.sqrt(2 * GM / baseRadius); // v = sqrt(2 * GM/r)
-
-        if (orbitType === 'crash') {
-            r = baseRadius;
-            angular = circularSpeed * 0.5; // Low angular speed for decay
-            vr = -0.1; // Inward radial velocity
-            orbitDescription = 'Crashing orbit (spirals inward)';
-        } else if (orbitType === 'stable') {
-            r = baseRadius;
-            angular = circularSpeed; // Circular orbit speed
-            vr = 0; // No radial velocity
-            orbitDescription = 'Stable circular orbit';
-        } else if (orbitType === 'escape') {
-            r = baseRadius;
-            angular = escapeSpeed * 1.2; // Above escape speed for hyperbolic orbit
-            vr = 0.05; // Slight outward radial velocity
-            orbitDescription = 'Escaping hyperbolic orbit';
-        } else {
-            alert('Invalid orbit type. Please enter "crash", "stable", or "escape".');
-            return;
-        }
-
-        const name = prompt('Enter satellite name:') || `Custom Sat ${window.satellites.length + 1}`;
-
-        const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink'];
-        const color = colors[window.satellites.length % colors.length];
-
-        // Calculate orbital parameters
-        const h = angular * r ** 2; // Specific angular momentum
-        const p = (h ** 2) / GM; // Semi-latus rectum
-        const A = ((h ** 2) / (GM * r)) - 1;
-        const B = (vr * h) / GM;
-        const e = Math.sqrt(A * A + B * B); // Eccentricity
-        const f = Math.atan2(B, A); // True anomaly
-        const effectiveAngle = Math.PI / 2 - f; // Adjust effective angle
-
-        alert(`Added ${name} with ${orbitDescription}.`);
-
-        const newSat = {
-            r,
-            angularSpeed: angular,
-            angle: Math.PI / 2,
-            color,
-            isDemo: false,
-            name,
-            speedU: 0.1,
-            speedV: angular - 0.1,
-            effectiveAngle,
-            h,
-            vr
-        };
-
-        window.satellites.push(newSat);
-        updateTrajectories();
-        updateSatelliteList();
-    };
-
-    updateSatelliteList();
+    */
 
     function logEvent(message) {
         const logDiv = document.getElementById('event-log');
@@ -380,8 +316,135 @@ function initializeSatelliteSimulation(views, earthImages, C_orbit, U_orbit, V_o
     }
 }
 
-function handleDeleteSatellite(index) {
-    window.satellites.splice(index, 1);
-    updateSatelliteList();
+// Moved these functions out of initializeSatelliteSimulation to be globally accessible
+// as the HTML buttons call them directly.
+window.handleAddNewSatellite = (isDefault = true) => { // Default to true for the original button
+    const GM = 1.0; 
+    
+    if (isDefault) {
+        // This is the "Add New Imaginary Sat (Default)" button logic
+        const colors = ['cyan', 'magenta', 'lime', 'orange', 'gold']; // More distinct colors for new ones
+        const newColor = colors[window.satellites.length % colors.length];
+        const newRadiusOffset = 100 + window.satellites.length * 20; // Slightly increasing radius
+        const newAngularSpeed = 0.1 + Math.random() * 0.1; // Random speed for variety
+        const newName = `Imaginary Sat ${window.satellites.filter(s => s.isDemo).length + 1}`;
+
+        const newSat = {
+            r: 1 + newRadiusOffset / 200,
+            angle: Math.random() * 2 * Math.PI,
+            color: newColor,
+            isDemo: true, // This is a demo satellite
+            name: newName,
+            angularSpeed: newAngularSpeed,
+            speedU: 0.1, // Placeholder, actual components would depend on orbit normal
+            speedV: 0,   // Placeholder
+            effectiveAngle: Math.atan2(0, 0.1), // Placeholder
+            h: newAngularSpeed * (1 + newRadiusOffset / 200) ** 2, // Specific angular momentum for circular
+            vr: 0 // Circular orbit has no radial velocity
+        };
+        window.satellites.push(newSat);
+        updateTrajectories();
+        updateSatelliteList();
+        logEvent(`Added default imaginary satellite: ${newSat.name}`);
+        return;
+    }
+
+    // This is the logic for a "Custom Satellite" (if you add a separate button for it)
+    const orbitType = prompt('Enter orbit type (crash, stable, escape):').toLowerCase();
+    let r, angular, vr, orbitDescription;
+
+    const baseRadius = 1.5; // Normalized units, R_Earth = 1
+    const circularSpeed = Math.sqrt(GM / baseRadius); 
+    const escapeSpeed = Math.sqrt(2 * GM / baseRadius);
+
+    if (orbitType === 'crash') {
+        r = baseRadius;
+        angular = circularSpeed * 0.5; 
+        vr = -0.1; 
+        orbitDescription = 'Crashing orbit (spirals inward)';
+    } else if (orbitType === 'stable') {
+        r = baseRadius;
+        angular = circularSpeed; 
+        vr = 0; 
+        orbitDescription = 'Stable circular orbit';
+    } else if (orbitType === 'escape') {
+        r = baseRadius;
+        angular = escapeSpeed * 1.2; 
+        vr = 0.05; 
+        orbitDescription = 'Escaping hyperbolic orbit';
+    } else {
+        alert('Invalid orbit type. Please enter "crash", "stable", or "escape".');
+        return;
+    }
+
+    const name = prompt('Enter satellite name:') || `Custom Sat ${window.satellites.length + 1}`;
+
+    const colors = ['red', 'green', 'blue', 'yellow', 'purple', 'orange', 'pink'];
+    const color = colors[window.satellites.length % colors.length];
+
+    const h = angular * r ** 2;
+    const A = ((h ** 2) / (GM * r)) - 1;
+    const B = (vr * h) / GM;
+    const e = Math.sqrt(A * A + B * B);
+    const f = Math.atan2(B, A);
+    const effectiveAngle = Math.PI / 2 - f;
+
+    logEvent(`Added ${name} with ${orbitDescription}.`);
+
+    const newSat = {
+        r,
+        angularSpeed: angular,
+        angle: Math.PI / 2,
+        color,
+        isDemo: false, // This is a custom satellite
+        name,
+        speedU: 0.1, 
+        speedV: angular - 0.1, 
+        effectiveAngle,
+        h, 
+        vr 
+    };
+
+    window.satellites.push(newSat);
     updateTrajectories();
+    updateSatelliteList();
+};
+
+window.handleDeleteSatellite = (index) => {
+    // Allows deletion of both demo and custom satellites
+    if (index >= 0 && index < window.satellites.length) {
+        const deletedSatName = window.satellites[index].name;
+        window.satellites.splice(index, 1);
+        updateSatelliteList();
+        updateTrajectories();
+        logEvent(`Deleted satellite: ${deletedSatName}`);
+    }
+};
+
+// Helper function to update the satellite list in the UI
+function updateSatelliteList() {
+    const listDiv = document.getElementById('sat-list');
+    listDiv.innerHTML = '';
+    window.satellites.forEach((sat, index) => {
+        const p = document.createElement('p');
+        p.style.color = sat.color;
+        // The delete button is shown for all satellites, but the prompt message specifies "imaginary"
+        const deleteButton = `<button onclick="handleDeleteSatellite(${index})">X</button>`;
+        const typeLabel = sat.isDemo ? `<span style="color: #6c757d; font-style: italic;">(Default)</span>` : `<span style="color: #6c757d; font-style: italic;">(Custom)</span>`;
+        p.innerHTML = `${sat.name} ${typeLabel} ${deleteButton}`;
+        listDiv.appendChild(p);
+    });
+    document.getElementById('sat-header').textContent = `Active Satellites (${window.satellites.length} Total)`;
 }
+
+// Event logging utility function
+function logEvent(message) {
+    const logDiv = document.getElementById('event-log');
+    const p = document.createElement('p');
+    p.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+    logDiv.appendChild(p);
+    logDiv.scrollTop = logDiv.scrollHeight; // Scroll to bottom
+}
+
+// OverFlightCalculator.js (No changes needed, keeping it as is)
+// ... (Your original OverFlightCalculator.js content here) ...

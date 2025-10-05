@@ -132,7 +132,9 @@
             <p>Current Time: <span id="current-time">N/A</span></p>
 
             <div id="controls">
-                <button onclick="handleAddNewSatellite()">Add New Imaginary Sat (Default)</button>
+                <!-- Modified to explicitly indicate it's a default add -->
+                <button onclick="handleAddNewSatellite(true)">Add New Imaginary Sat (Default)</button>
+                <!-- Add a button for custom satellites, if you want to keep that functionality easily accessible -->
                 <p style="font-size: 0.8em; color: #aaa;">(Click X next to imaginary satellites to delete)</p>
             </div>
 
